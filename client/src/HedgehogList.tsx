@@ -1,8 +1,14 @@
 import { Box, MenuItem, Paper, Typography } from "@mui/material";
 import { Hedgehog } from "@shared/hedgehog";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Dispatch } from "react";
 
-export default function HedgeHogList() {
+type HedgehogListProps = {
+  selectedHedgehogId: Dispatch<number | null>;
+};
+
+export default function HedgeHogList({
+  selectedHedgehogId,
+}: Readonly<HedgehogListProps>) {
   const [hedgehogs, setHedgehogs] = useState<Hedgehog[]>([]);
 
   // Fetch all hedgehog's during startup
@@ -13,7 +19,7 @@ export default function HedgeHogList() {
         if (!res.ok) return;
 
         const json = await res.json();
-        setHedgehogs(json?.hedgehogs || []);
+        setHedgehogs(json?.hedgehogs ?? []);
       } catch (err) {
         console.error(`Error while fetching hedgehogs: ${err}`);
       }
@@ -40,16 +46,20 @@ export default function HedgeHogList() {
       </Box>
       {hedgehogs.length ? (
         <Box sx={{ overflowY: "scroll", height: "100%" }}>
-          {hedgehogs.map((hedgehog, index: number) => (
-            <MenuItem key={`hedgehog-index-${index}`}>{hedgehog.id}</MenuItem>
+          {hedgehogs.map((hedgehog) => (
+            <MenuItem
+              key={hedgehog.id}
+              onClick={() => {
+                return selectedHedgehogId(hedgehog.id);
+              }}
+            >
+              {hedgehog?.name ?? "-"}
+            </MenuItem>
           ))}
         </Box>
       ) : (
         <Typography sx={{ padding: "1em" }}>
-          TODO: Mikäli tietokannasta löytyy siilejä, ne listautuvat tähän.
-          Koodaa logiikka, jolla tämän listauksen siiliä klikkaamalla siili
-          tulee valituksi, jonka jälkeen sen tiedot tulee hakea viereiseen
-          komponenttiin.
+          Ei rekisteröityjä havaintoja
         </Typography>
       )}
     </Paper>

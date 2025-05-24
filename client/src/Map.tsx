@@ -1,6 +1,7 @@
 import { GlobalStyles } from "@mui/material";
 import { View, Map as OlMap, Feature } from "ol";
 import { GeoJSON } from "ol/format";
+import { Point } from "ol/geom";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import OSM from "ol/source/OSM.js";
@@ -37,6 +38,10 @@ export function Map({ children, onMapClick, features }: Props) {
    * OpenLayers Map: @see https://openlayers.org/en/latest/apidoc/module-ol_Map-Map.html
    * "For a map to render, a view, one or more layers, and a target container are needed" -docs
    */
+
+  // Reusable source for map clicks
+  const clickSource = new VectorSource();
+
   const [olMap] = useState(() => {
     return new OlMap({
       target: "",
@@ -57,6 +62,16 @@ export function Map({ children, onMapClick, features }: Props) {
             }),
           }),
         }),
+        new VectorLayer({
+          source: clickSource,
+          style: new Style({
+            image: new Circle({
+              radius: 7,
+              fill: new Fill({ color: "#ff0000" }),
+              stroke: new Stroke({ color: "#880000", width: 2 }),
+            }),
+          }),
+        }),
       ],
     });
   });
@@ -66,13 +81,17 @@ export function Map({ children, onMapClick, features }: Props) {
     olMap.setTarget(mapRef.current as HTMLElement);
 
     olMap.on("click", (event) => {
-      onMapClick(event.coordinate);
+      const coords = event.coordinate;
+      onMapClick(coords);
+
+      clickSource.clear(); // Clear previous red dot (optional)
+      clickSource.addFeature(new Feature({ geometry: new Point(coords) }));
     });
   }, [olMap]);
 
   /** Listen for changes in the 'features' property */
   useEffect(() => {
-    if (!features || !features.length) return;
+    if (!features?.length) return;
     const layers = olMap.getLayers().getArray();
 
     const source = (layers[1] as VectorLayer<VectorSource>).getSource();
@@ -80,7 +99,7 @@ export function Map({ children, onMapClick, features }: Props) {
       (geometry) =>
         new Feature({
           geometry: new GeoJSON().readGeometry(geometry.geometry),
-        })
+        }),
     );
     source?.addFeatures(olFeatures);
   }, [features]);

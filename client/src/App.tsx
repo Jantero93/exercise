@@ -3,6 +3,7 @@ import { HedgehogInfo } from "./HedgehogInfo";
 import HedgeHogList from "./HedgehogList";
 import { Map } from "./Map";
 import { Box, Paper, Typography } from "@mui/material";
+import { toLonLat } from "ol/proj";
 import { useState } from "react";
 
 export function App() {
@@ -10,7 +11,7 @@ export function App() {
   const [coordinates, setCoordinates] = useState<number[]>();
   // ID of the currently selected hedgehog
   const [selectedHedgehogId, setSelectedHedgehogId] = useState<number | null>(
-    null
+    null,
   );
 
   return (
@@ -47,14 +48,14 @@ export function App() {
           overflow: "hidden",
         }}
       >
-        <HedgeHogList />
+        <HedgeHogList selectedHedgehogId={setSelectedHedgehogId} />
         <Box>
           <HedgehogInfo hedgehogId={selectedHedgehogId} />
           <HedgehogForm coordinates={coordinates || []} />
         </Box>
         <Paper elevation={3} sx={{ margin: "1em" }}>
           <Map
-            onMapClick={(coordinates) => setCoordinates(coordinates)}
+            onMapClick={(coordinates) => setCoordinates(toLonLat(coordinates))}
             // Esimerkki siitä, miten kartalle voidaan välittää siilien koordinaatteja GeoJSON -arrayssä
             features={[
               {

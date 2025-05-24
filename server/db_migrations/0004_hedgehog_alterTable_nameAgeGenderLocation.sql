@@ -10,14 +10,14 @@ DO $$ BEGIN
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'hedgehog' AND column_name = 'age'
     ) THEN
-        ALTER TABLE hedgehog ADD COLUMN age INTEGER NOT NULL;
+        ALTER TABLE hedgehog ADD COLUMN age SMALLINT NOT NULL;
     END IF;
 
     IF NOT EXISTS (
         SELECT 1 FROM information_schema.columns
         WHERE table_name = 'hedgehog' AND column_name = 'gender'
     ) THEN
-        ALTER TABLE hedgehog ADD COLUMN gender gender_enum DEFAULT 'Unknown';
+        ALTER TABLE hedgehog ADD COLUMN gender gender_enum NOT NULL;
     END IF;
 
     IF NOT EXISTS (
