@@ -49,9 +49,7 @@ export default function HedgeHogList({
           {hedgehogs.map((hedgehog) => (
             <MenuItem
               key={hedgehog.id}
-              onClick={() => {
-                return selectedHedgehogId(hedgehog.id);
-              }}
+              onClick={() => selectedHedgehogId(hedgehog.id)}
             >
               {hedgehog?.name ?? "-"}
             </MenuItem>

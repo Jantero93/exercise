@@ -80,7 +80,7 @@ export function HedgehogInfo({ hedgehogId }: Props) {
     <Paper elevation={3} sx={{ margin: "1em 0", padding: "1em" }}>
       <Typography variant="h6">{hedgehog.name}</Typography>
       <Typography>ID: {hedgehog.id}</Typography>
-      <Typography>Ikä: {hedgehog.age ?? "-"}</Typography>
+      <Typography>Ikä: {hedgehog.age}</Typography>
       <Typography>Nimi: {hedgehog.name}</Typography>
     </Paper>
   );

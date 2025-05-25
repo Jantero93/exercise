@@ -1,7 +1,6 @@
 import { GlobalStyles } from "@mui/material";
 import { View, Map as OlMap, Feature } from "ol";
 import { GeoJSON } from "ol/format";
-import { Point } from "ol/geom";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import OSM from "ol/source/OSM.js";
@@ -17,6 +16,11 @@ interface Props {
   features?: GeoJSON.Feature[];
   onMapClick: (coordinates: number[]) => void;
 }
+
+const VectorLayerIds = {
+  HedgehogLocations: "hedgehog",
+  MapClickLocation: "map-click",
+} as const;
 
 export function Map({ children, onMapClick, features }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -39,9 +43,6 @@ export function Map({ children, onMapClick, features }: Props) {
    * "For a map to render, a view, one or more layers, and a target container are needed" -docs
    */
 
-  // Reusable source for map clicks
-  const clickSource = new VectorSource();
-
   const [olMap] = useState(() => {
     return new OlMap({
       target: "",
@@ -53,6 +54,7 @@ export function Map({ children, onMapClick, features }: Props) {
           source: new OSM(),
         }),
         new VectorLayer({
+          properties: { id: VectorLayerIds.HedgehogLocations },
           source: new VectorSource(),
           style: new Style({
             image: new Circle({
@@ -63,7 +65,8 @@ export function Map({ children, onMapClick, features }: Props) {
           }),
         }),
         new VectorLayer({
-          source: clickSource,
+          properties: { id: VectorLayerIds.MapClickLocation },
+          source: new VectorSource(),
           style: new Style({
             image: new Circle({
               radius: 7,
@@ -84,24 +87,51 @@ export function Map({ children, onMapClick, features }: Props) {
       const coords = event.coordinate;
       onMapClick(coords);
 
-      clickSource.clear(); // Clear previous red dot (optional)
-      clickSource.addFeature(new Feature({ geometry: new Point(coords) }));
+      const mapClickVectorLayer = olMap
+        .getLayers()
+        .getArray()
+        .find(
+          (layer) =>
+            layer.getProperties().id === VectorLayerIds.MapClickLocation,
+        ) as VectorLayer<VectorSource>;
+
+      mapClickVectorLayer.getSource()?.clear();
+      mapClickVectorLayer.getSource()?.addFeature(
+        new Feature({
+          geometry: new GeoJSON().readGeometry({
+            type: "Point",
+            coordinates: coords,
+          }),
+        }),
+      );
     });
   }, [olMap]);
 
   /** Listen for changes in the 'features' property */
   useEffect(() => {
     if (!features?.length) return;
-    const layers = olMap.getLayers().getArray();
+    const vectorLayer = olMap
+      .getLayers()
+      .getArray()
+      .find(
+        (layer) =>
+          layer.getProperties().id === VectorLayerIds.HedgehogLocations,
+      ) as VectorLayer<VectorSource>;
 
-    const source = (layers[1] as VectorLayer<VectorSource>).getSource();
+    if (!vectorLayer) {
+      return;
+    }
+
+    // Clear existing features, show one hedgehog at a time
+    vectorLayer.getSource()?.clear();
+
     const olFeatures = features.map(
       (geometry) =>
         new Feature({
           geometry: new GeoJSON().readGeometry(geometry.geometry),
         }),
     );
-    source?.addFeatures(olFeatures);
+    vectorLayer.getSource()?.addFeatures(olFeatures);
   }, [features]);
 
   return (

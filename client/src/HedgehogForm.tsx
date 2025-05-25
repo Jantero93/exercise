@@ -16,8 +16,6 @@ interface Props {
   readonly coordinates: number[];
 }
 
-type PostHedgehog = Omit<Hedgehog, "id">;
-
 export function HedgehogForm({ coordinates }: Props) {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
@@ -31,9 +29,14 @@ export function HedgehogForm({ coordinates }: Props) {
       return;
     }
 
-    const postHedgehogData: PostHedgehog = {
+    if (!name || isNaN(parseInt(age)) || !gender || coordinates.length !== 2) {
+      alert("Täytä kaikki kentät ennen lähettämistä.");
+      return;
+    }
+
+    const postHedgehogData: Omit<Hedgehog, "id"> = {
       name,
-      age: isNaN(parseInt(age)) ? undefined : parseInt(age),
+      age: parseInt(age),
       gender: gender as "Female" | "Male" | "Unknown",
       location: {
         lat: coordinates[0],
@@ -52,12 +55,15 @@ export function HedgehogForm({ coordinates }: Props) {
 
       if (!response.ok) {
         alert("Tallennus epäonnistui.");
+        console.error(response.statusText);
+        console.error(await response.json());
+        return;
       }
 
-      // Handle success
       alert("Siilihavainto tallennettu!");
     } catch (error) {
-      console.error("API error:", error);
+      // Tehtävän puitteissa ok tulostaa koko error
+      console.error("API error", error);
       alert("Tallennus epäonnistui.");
     }
   };
