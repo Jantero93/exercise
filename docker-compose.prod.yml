@@ -1,0 +1,43 @@
+version: "3.8"
+
+services:
+  client:
+    build:
+      context: .
+      dockerfile: client/Dockerfile.prod
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile.prod
+    ports:
+      - "3003:3003"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - NODE_ENV=production
+
+  db:
+    image: postgis/postgis:13-3.3-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: db_prod_user
+      POSTGRES_PASSWORD: ProdPassword
+      POSTGRES_DB: db_prod
+    volumes:
+      - db-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: psql -U db_prod_user -d db_prod -c "SELECT 1"
+      interval: 5s
+      timeout: 5s
+      retries: 4
+
+volumes:
+  db-volume:
