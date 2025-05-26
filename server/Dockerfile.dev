@@ -17,4 +17,4 @@ RUN apk update && apk add curl
 COPY --from=shared /app/shared /app/shared
 COPY --from=server /app/server /app/server
 
-CMD npm run dev
+CMD npm run db-migrate && npm run dev
