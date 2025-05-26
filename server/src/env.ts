@@ -1,10 +1,18 @@
-import 'dotenv/config';
+import "dotenv/config";
 
-if (process.env.NODE_ENV === 'development') {
+if (process.env.NODE_ENV === "development") {
   try {
-    require('../.env');
+    require("../.env");
   } catch (err) {
     // Ignore errors - only used for restarting server on .env changes
+  }
+}
+
+if (process.env.NODE_ENV === "production") {
+  try {
+    require("../.env.prod");
+  } catch (err) {
+    console.error("err");
   }
 }
 
@@ -19,7 +27,7 @@ function getEnv() {
       database: process.env.PG_DATABASE,
       username: process.env.PG_USER,
       password: process.env.PG_PASS,
-      sslMode: process.env.PG_SSLMODE || 'disable',
+      sslMode: process.env.PG_SSLMODE || "disable",
     },
   };
 }

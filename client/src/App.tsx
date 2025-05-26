@@ -3,15 +3,45 @@ import { HedgehogInfo } from "./HedgehogInfo";
 import HedgeHogList from "./HedgehogList";
 import { Map } from "./Map";
 import { Box, Paper, Typography } from "@mui/material";
-import { useState } from "react";
+import { Hedgehog } from "@shared/hedgehog";
+import { toLonLat, transform } from "ol/proj";
+import { useEffect, useState } from "react";
 
 export function App() {
   // Latest coordinates from the Map click event
   const [coordinates, setCoordinates] = useState<number[]>();
   // ID of the currently selected hedgehog
   const [selectedHedgehogId, setSelectedHedgehogId] = useState<number | null>(
-    null
+    null,
   );
+  const [selectedHedgehogInfo, setSelectedHedgehogInfo] =
+    useState<Hedgehog | null>(null);
+
+  useEffect(() => {
+    if (selectedHedgehogId == null) {
+      setSelectedHedgehogInfo(null);
+      return;
+    }
+
+    const fetchHedgehog = async () => {
+      try {
+        const response = await fetch(`/api/v1/hedgehog/${selectedHedgehogId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const data = await response.json();
+        setSelectedHedgehogInfo(data.hedgehog);
+      } catch (error) {
+        console.error("Failed to fetch hedgehog:", error);
+        setSelectedHedgehogInfo(null);
+      }
+    };
+
+    fetchHedgehog();
+  }, [selectedHedgehogId]);
+
+  const transformOlCoordinates = (coordinates: number[]) =>
+    transform(coordinates, "EPSG:4326", "EPSG:3857");
 
   return (
     <Box
@@ -47,29 +77,39 @@ export function App() {
           overflow: "hidden",
         }}
       >
-        <HedgeHogList />
+        <HedgeHogList
+          selectedHedgehogId={selectedHedgehogId}
+          setSelectedHedgehogId={setSelectedHedgehogId}
+        />
         <Box>
           <HedgehogInfo hedgehogId={selectedHedgehogId} />
           <HedgehogForm coordinates={coordinates || []} />
         </Box>
         <Paper elevation={3} sx={{ margin: "1em" }}>
           <Map
-            onMapClick={(coordinates) => setCoordinates(coordinates)}
+            onMapClick={(coordinates) => setCoordinates(toLonLat(coordinates))}
             // Esimerkki siitä, miten kartalle voidaan välittää siilien koordinaatteja GeoJSON -arrayssä
-            features={[
-              {
-                type: "Feature",
-                geometry: {
-                  type: "Point",
-                  coordinates: [2859167.020281517, 9632038.56757201],
-                },
-                properties: {
-                  name: "Siili Silvennoinen",
-                  age: 50,
-                  gender: "male",
-                },
-              },
-            ]}
+            features={
+              selectedHedgehogInfo
+                ? [
+                    {
+                      type: "Feature",
+                      geometry: {
+                        type: "Point",
+                        coordinates: transformOlCoordinates([
+                          selectedHedgehogInfo.location.lat,
+                          selectedHedgehogInfo.location.lon,
+                        ]),
+                      },
+                      properties: {
+                        name: selectedHedgehogInfo.name,
+                        age: selectedHedgehogInfo.age,
+                        gender: selectedHedgehogInfo.gender,
+                      },
+                    },
+                  ]
+                : []
+            }
           />
         </Paper>
       </Box>

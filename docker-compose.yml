@@ -34,7 +34,7 @@ services:
       test: curl --fail http://localhost:3003/api/v1/health || exit 1
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 4
   db:
     image: postgis/postgis:13-3.3-alpine
     restart: always
@@ -50,7 +50,16 @@ services:
       test: psql -U db_dev_user -d db_dev -c "SELECT 1"
       interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 4
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - client
 
 volumes:
   db-volume:

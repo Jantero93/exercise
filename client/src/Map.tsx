@@ -1,6 +1,7 @@
 import { GlobalStyles } from "@mui/material";
 import { View, Map as OlMap, Feature } from "ol";
 import { GeoJSON } from "ol/format";
+import Point from "ol/geom/Point";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import OSM from "ol/source/OSM.js";
@@ -16,6 +17,11 @@ interface Props {
   features?: GeoJSON.Feature[];
   onMapClick: (coordinates: number[]) => void;
 }
+
+const VectorLayerIds = {
+  HedgehogLocations: "hedgehog",
+  MapClickLocation: "map-click",
+} as const;
 
 export function Map({ children, onMapClick, features }: Props) {
   const mapRef = useRef<HTMLDivElement>(null);
@@ -37,6 +43,7 @@ export function Map({ children, onMapClick, features }: Props) {
    * OpenLayers Map: @see https://openlayers.org/en/latest/apidoc/module-ol_Map-Map.html
    * "For a map to render, a view, one or more layers, and a target container are needed" -docs
    */
+
   const [olMap] = useState(() => {
     return new OlMap({
       target: "",
@@ -48,12 +55,24 @@ export function Map({ children, onMapClick, features }: Props) {
           source: new OSM(),
         }),
         new VectorLayer({
+          properties: { id: VectorLayerIds.HedgehogLocations },
           source: new VectorSource(),
           style: new Style({
             image: new Circle({
               radius: 7,
               fill: new Fill({ color: "#00B2A0" }),
               stroke: new Stroke({ color: "darkblue", width: 3 }),
+            }),
+          }),
+        }),
+        new VectorLayer({
+          properties: { id: VectorLayerIds.MapClickLocation },
+          source: new VectorSource(),
+          style: new Style({
+            image: new Circle({
+              radius: 7,
+              fill: new Fill({ color: "#ff0000" }),
+              stroke: new Stroke({ color: "#880000", width: 2 }),
             }),
           }),
         }),
@@ -66,23 +85,77 @@ export function Map({ children, onMapClick, features }: Props) {
     olMap.setTarget(mapRef.current as HTMLElement);
 
     olMap.on("click", (event) => {
-      onMapClick(event.coordinate);
+      const coords = event.coordinate;
+      onMapClick(coords);
+
+      const mapClickVectorLayer = olMap
+        .getLayers()
+        .getArray()
+        .find(
+          (layer) =>
+            layer.getProperties().id === VectorLayerIds.MapClickLocation,
+        ) as VectorLayer<VectorSource>;
+
+      mapClickVectorLayer.getSource()?.clear();
+      mapClickVectorLayer.getSource()?.addFeature(
+        new Feature({
+          geometry: new GeoJSON().readGeometry({
+            type: "Point",
+            coordinates: coords,
+          }),
+        }),
+      );
     });
   }, [olMap]);
 
+  /** Prevent redundant rezooms by map feature */
+  const previousFirstIdRef = useRef<string | undefined>();
   /** Listen for changes in the 'features' property */
   useEffect(() => {
-    if (!features || !features.length) return;
-    const layers = olMap.getLayers().getArray();
+    if (!features?.length) return;
 
-    const source = (layers[1] as VectorLayer<VectorSource>).getSource();
+    const currentFirst = features[0];
+    const currentKey = JSON.stringify(currentFirst.geometry);
+
+    if (previousFirstIdRef.current === currentKey) {
+      return; // No change
+    }
+
+    const vectorLayer = olMap
+      .getLayers()
+      .getArray()
+      .find(
+        (layer) =>
+          layer.getProperties().id === VectorLayerIds.HedgehogLocations,
+      ) as VectorLayer<VectorSource>;
+
+    if (!vectorLayer) {
+      return;
+    }
+
+    // Clear existing features, show one hedgehog at a time
+    vectorLayer.getSource()?.clear();
+
     const olFeatures = features.map(
       (geometry) =>
         new Feature({
           geometry: new GeoJSON().readGeometry(geometry.geometry),
-        })
+        }),
     );
-    source?.addFeatures(olFeatures);
+    vectorLayer.getSource()?.addFeatures(olFeatures);
+
+    const newFeatureGeometry = vectorLayer
+      .getSource()
+      ?.getFeatures()[0]
+      .getGeometry();
+
+    // Center to Hedgehog location
+    if (newFeatureGeometry instanceof Point) {
+      olView.setCenter(newFeatureGeometry.getCoordinates());
+      olView.setZoom(8);
+    }
+
+    previousFirstIdRef.current = String(currentKey);
   }, [features]);
 
   return (
