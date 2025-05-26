@@ -3,11 +3,13 @@ import { Hedgehog } from "@shared/hedgehog";
 import { useEffect, useState, Dispatch } from "react";
 
 type HedgehogListProps = {
-  selectedHedgehogId: Dispatch<number | null>;
+  selectedHedgehogId: number | null;
+  setSelectedHedgehogId: Dispatch<number | null>;
 };
 
 export default function HedgeHogList({
   selectedHedgehogId,
+  setSelectedHedgehogId,
 }: Readonly<HedgehogListProps>) {
   const [hedgehogs, setHedgehogs] = useState<Hedgehog[]>([]);
 
@@ -46,12 +48,13 @@ export default function HedgeHogList({
       </Box>
       {hedgehogs.length ? (
         <Box sx={{ overflowY: "scroll", height: "100%" }}>
-          {hedgehogs.map((hedgehog) => (
+          {hedgehogs.map(({ id, name }) => (
             <MenuItem
-              key={hedgehog.id}
-              onClick={() => selectedHedgehogId(hedgehog.id)}
+              key={id}
+              onClick={() => setSelectedHedgehogId(id)}
+              selected={id === selectedHedgehogId}
             >
-              {hedgehog?.name ?? "-"}
+              {name}
             </MenuItem>
           ))}
         </Box>

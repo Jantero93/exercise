@@ -77,7 +77,10 @@ export function App() {
           overflow: "hidden",
         }}
       >
-        <HedgeHogList selectedHedgehogId={setSelectedHedgehogId} />
+        <HedgeHogList
+          selectedHedgehogId={selectedHedgehogId}
+          setSelectedHedgehogId={setSelectedHedgehogId}
+        />
         <Box>
           <HedgehogInfo hedgehogId={selectedHedgehogId} />
           <HedgehogForm coordinates={coordinates || []} />
@@ -99,9 +102,9 @@ export function App() {
                         ]),
                       },
                       properties: {
-                        name: selectedHedgehogInfo.name ?? "-",
-                        age: selectedHedgehogInfo.age ?? "-",
-                        gender: selectedHedgehogInfo?.gender,
+                        name: selectedHedgehogInfo.name,
+                        age: selectedHedgehogInfo.age,
+                        gender: selectedHedgehogInfo.gender,
                       },
                     },
                   ]

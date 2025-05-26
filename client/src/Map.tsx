@@ -1,6 +1,7 @@
 import { GlobalStyles } from "@mui/material";
 import { View, Map as OlMap, Feature } from "ol";
 import { GeoJSON } from "ol/format";
+import Point from "ol/geom/Point";
 import TileLayer from "ol/layer/Tile";
 import VectorLayer from "ol/layer/Vector";
 import OSM from "ol/source/OSM.js";
@@ -107,9 +108,19 @@ export function Map({ children, onMapClick, features }: Props) {
     });
   }, [olMap]);
 
+  /** Prevent redundant rezooms by map feature */
+  const previousFirstIdRef = useRef<string | undefined>();
   /** Listen for changes in the 'features' property */
   useEffect(() => {
     if (!features?.length) return;
+
+    const currentFirst = features[0];
+    const currentKey = JSON.stringify(currentFirst.geometry);
+
+    if (previousFirstIdRef.current === currentKey) {
+      return; // No change
+    }
+
     const vectorLayer = olMap
       .getLayers()
       .getArray()
@@ -132,6 +143,19 @@ export function Map({ children, onMapClick, features }: Props) {
         }),
     );
     vectorLayer.getSource()?.addFeatures(olFeatures);
+
+    const newFeatureGeometry = vectorLayer
+      .getSource()
+      ?.getFeatures()[0]
+      .getGeometry();
+
+    // Center to Hedgehog location
+    if (newFeatureGeometry instanceof Point) {
+      olView.setCenter(newFeatureGeometry.getCoordinates());
+      olView.setZoom(8);
+    }
+
+    previousFirstIdRef.current = String(currentKey);
   }, [features]);
 
   return (
